@@ -34,12 +34,17 @@ const rows = {lower: 40, upper: 50};
 const seats = {lower: 100, upper: 150};
 ```
 This configuration creates a theater layout between 40 000 and 75 000 seats with 5 differents ranks.
+
 ⚠️ Don't try to create enormous layouts...it can be slow to process ⚠️
 
 To run the script:
 ```
 node index.js
 ```
+
+We can notice that if the layout is composed of a large number of sections, rows and seats. the ui is slower and it takes several seconds to render the all layout.
+
+One solution to this problem could be to paginate the application and to render the UI section by section.
 ## Project setup
 ```
 npm install

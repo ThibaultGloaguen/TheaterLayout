@@ -150,7 +150,7 @@ const launchGeneration = (nbRanks, nbSections, rows, seats) => {
     console.log(`Total: ${data.totalSeats} seats generated.`)
 }
 
-const nbRanks = 5;
+const nbRanks = 10;
 const nbSections = 10;
 const rows = {lower: 40, upper: 50};
 const seats = {lower: 100, upper: 150};

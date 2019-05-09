@@ -80,6 +80,8 @@
           return acc;
         }, {});
         const end = Date.now();
+        console.log('NB ELEMENT TO RENDER', nbElementTorender)
+        console.log('PERFORMANCE', end - begin + 'ms')
         if (nbElementTorender > 500000 && nbSections > 1) {
           this.theaterLayoutTooBig = true
         }

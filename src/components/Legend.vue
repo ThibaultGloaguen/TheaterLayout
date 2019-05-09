@@ -17,7 +17,6 @@
 
         class="item"
         :key="id">
-        {{item}}
         <div class="square" :style="{ borderColor: color}"></div>
         <div class="rank-id">{{id}}</div>
       </div>
