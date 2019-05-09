@@ -2,6 +2,10 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import Theater from './views/Theater.vue'
 
+import layout from './assets/layout.json'
+import groups from './assets/groups.json'
+
+console.log(layout)
 Vue.use(Router)
 
 export default new Router({
@@ -10,8 +14,9 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'thater',
-      component: Theater
-    },
+      name: 'theater',
+      component: Theater,
+      props: { layoutProp: layout, groupsProp: groups }
+    }
   ]
 })

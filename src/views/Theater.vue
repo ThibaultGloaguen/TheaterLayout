@@ -1,204 +1,163 @@
 <template>
   <div class="theater">
     <div class="sections">
-      <div class="section" v-for="section in layout.sections">
-        {{section.name}}
-        <div class="row" v-for="row in section.rows">
-          <div :ref="getRefSeat(section,row, seat)" :class="seatClass(seat.rank)"
-               v-for="seat in row.seats">
-          </div>
-        </div>
-      </div>
+      <section-theater v-for="section in theaterLayout"
+                       :section="section"
+                       :key="section.name">
+      </section-theater>
     </div>
-    <div class="legend">
-      <div v-for="group in groups" style="display: flex;padding: 1em;justify-content: space-evenly">
-        <div :ref="group.id" class="square"></div>
-        <div>Group ID: {{group.id}}</div>
-      </div>
-    </div>
+    <legend-theater :legendMap="legendMap">
+    </legend-theater>
   </div>
 </template>
 
 
 <script>
+  import Section from "../components/Section"
+  import Legend from "../components/Legend"
 
   export default {
-    name: 'home',
+    name: "home",
+    props: {layoutProp: {type: Object}, groupsProp: {type: Array}},
+    components: {
+      "section-theater": Section,
+      "legend-theater": Legend
+    },
     methods: {
-      getGroupColor: function () {
-
-      },
       getRandomColor: function () {
-        return '#' + (0x1000000 + (Math.random()) * 0xffffff).toString(16).substr(1, 6);
+        return (
+          "#" + (0x1000000 + Math.random() * 0xffffff).toString(16).substr(1, 6)
+        );
       },
-      getRefSeat: function (section, row, seat) {
-        return (section.name + '_' + row.row + '_' + seat.seat)
+      /**
+       * Transform the already existing structure into a full object structure ( no arrays)
+       * This new structure could be useful for further manipulation on the seat ( no need to iterate through an array
+       * of rows or seats, data can be accessed directly)
+       */
+      createTheaterLayoutStructure: function () {
+        var nbElementTorender = 0
+        // First create color rank structure map
+        const begin = Date.now();
+        this.legendMap.rankColor = this.layout.ranks.reduce((acc, rank) => {
+          return {
+            ...acc,
+            [rank]: this.getRandomColor()
+          };
+        }, {});
+
+        // Then create the theater layout structure which is full object (no arrays)
+        const nbSections = this.layout.sections.length
+        const newLayout = this.layout.sections.reduce((acc, {name, rows}) => {
+          // init entry in sections structure
+          if (!acc[name]) {
+            acc[name] = {
+              name,
+              rows: {}
+            };
+          }
+          const nbRows = rows.length
+          acc[name].rows = rows.reduce((rowsAcc, {row, seats}) => {
+            // init entry in rows structure
+            if (!rowsAcc[row]) {
+              rowsAcc[row] = {
+                row,
+                seats: {}
+              };
+            }
+            const nbSeats = seats.length * nbRows
+            nbElementTorender += nbSeats + nbRows + 1
+            rowsAcc[row].seats = seats.reduce((seatsAcc, {seat, rank}) => {
+              // init entry in seats structure
+              seatsAcc[seat] = {
+                seat,
+                rank,
+                rankColor: this.legendMap.rankColor[rank]
+              };
+              return seatsAcc;
+            }, {});
+            return rowsAcc;
+          }, {});
+          return acc;
+        }, {});
+        const end = Date.now();
+        if (nbElementTorender > 500000 && nbSections > 1) {
+          this.theaterLayoutTooBig = true
+        }
+        this.theaterLayout = newLayout;
       },
-      setSeatForGroup: function () {
-        this.groups.forEach((group) => {
-          let groupColor = this.getRandomColor()
-          group.seats.forEach((seat) => {
-            let currentSeat = this.$refs[seat.section + '_' + seat.row + '_' + seat.seat]
-            let groupLegend = this.$refs[group.id]
-            currentSeat[0].style.backgroundColor = groupColor
-            groupLegend[0].style.backgroundColor = groupColor
-          })
-        })
-      },
-      seatClass: function (rank) {
-        if (rank === 'rank1') {
-          return 'first-rank'
-        } else if (rank === 'rank2') {
-          return 'second-rank'
-        } else {
-          return 'third-rank'
+      populateTheaterWithSample: function () {
+        // Iterate through every groups
+        for (let i = 0; i < this.groups.length; i++) {
+          const {id, seats} = this.groups[i];
+          // Create color legend fot this id if it desont already exist
+          if (!this.legendMap.groupColor[id]) {
+            this.legendMap.groupColor[id] = this.getRandomColor();
+          }
+          // Iterate through every seats for a given group
+          for (let j = 0; j < seats.length; j++) {
+            const {section, row, seat} = seats[j];
+            // Add id and color of the group for the selected seat in the transformed theatre structure
+            this.theaterLayout[section].rows[row].seats[seat] = {
+              ...this.theaterLayout[section].rows[row].seats[seat],
+              groupId: id,
+              groupColor: this.legendMap.groupColor[id]
+            };
+          }
         }
       }
     },
     mounted: function () {
-      this.setSeatForGroup()
+      // This structure get rid of arrays to get instant access to desire data
+      this.layout = this.layoutProp;
+      this.groups = this.groupsProp;
+      this.createTheaterLayoutStructure();
+      this.populateTheaterWithSample();
     },
     data: function () {
       return {
-        groups: [
-          {
-            id: '+31611111111', seats: [
-              {section: 'main hall', row: '1', seat: '4'},
-              {section: 'main hall', row: '1', seat: '2'},
-              {section: 'main hall', row: '2', seat: '2'},
-              {section: 'main hall', row: '2', seat: '4'},
-            ]
-          },
-          {
-            id: '+31622222222', seats: [
-              {section: 'main hall', row: '2', seat: '6'},
-              {section: 'main hall', row: '2', seat: '5'},
-            ]
-          },
-        ],
-        layout: {
-          ranks: ['rank1', 'rank2', 'rank3'],
-          sections: [
-            {
-              name: 'main hall',
-              rows: [
-                {
-                  row: '1', seats: [
-                    {seat: '1', rank: 'rank1'},
-                    {seat: '3', rank: 'rank1'},
-                    {seat: '4', rank: 'rank1'},
-                    {seat: '2', rank: 'rank1'}
-                  ]
-                },
-                {
-                  row: '2', seats: [
-                    {seat: '1', rank: 'rank1'},
-                    {seat: '3', rank: 'rank1'},
-                    {seat: '5', rank: 'rank1'},
-                    {seat: '6', rank: 'rank1'},
-                    {seat: '4', rank: 'rank1'},
-                    {seat: '2', rank: 'rank1'}
-                  ]
-                },
-                {
-                  row: '3', seats: [
-                    {seat: '1', rank: 'rank2'},
-                    {seat: '3', rank: 'rank2'},
-                    {seat: '5', rank: 'rank2'},
-                    {seat: '6', rank: 'rank2'},
-                    {seat: '4', rank: 'rank2'},
-                    {seat: '2', rank: 'rank2'}
-
-                  ]
-
-                },
-              ]
-            },
-            {
-              name: '1st ba',
-              rows: [
-                {
-                  row: '1', seats: [
-                    {seat: '1', rank: 'rank1'},
-                    {seat: '3', rank: 'rank1'},
-                    {seat: '4', rank: 'rank1'},
-                    {seat: '2', rank: 'rank1'}
-                  ]
-                },
-                {
-                  row: '2', seats: [
-                    {seat: '1', rank: 'rank1'},
-                    {seat: '3', rank: 'rank1'},
-                    {seat: '5', rank: 'rank1'},
-                    {seat: '6', rank: 'rank1'},
-                    {seat: '4', rank: 'rank1'},
-                    {seat: '2', rank: 'rank1'}
-                  ]
-                },
-                {
-                  row: '3', seats: [
-                    {seat: '1', rank: 'rank2'},
-                    {seat: '3', rank: 'rank2'},
-                    {seat: '5', rank: 'rank2'},
-                    {seat: '6', rank: 'rank2'},
-                    {seat: '4', rank: 'rank2'},
-                    {seat: '2', rank: 'rank2'}
-
-                  ]
-
-                },
-              ]
-            },
-          ]
-        }
-      }
+        /**
+         * Structure of the theater layout
+         * {
+       *    [section]: {
+       *        name,
+       *        rows : {
+       *         [row] : {
+       *          row,
+       *          seats: {
+       *            [seat]: {
+       *              seat,
+       *              groupId,
+       *              groupColor,
+       *              rank,
+       *              rankColor
+       *            }
+       *          }
+       *         }
+       *        }
+       *     }
+       * }
+         */
+        indexSection: 0,
+        theaterLayoutTooBig: false,
+        theaterLayout: {},
+        legendMap: {
+          groupColor: {},
+          rankColor: {}
+        },
+        groups: [],
+        layout: {}
+      };
     }
-  }
+  };
 </script>
 
 <style>
-  .square {
-    width: 20px;
-    height: 20px;
-    background-color: red;
-  }
-
   .theater {
     display: flex;
+    max-width: 100vw;
   }
 
   .sections {
     width: 80%;
   }
-
-  .legend {
-    width: 20%;
-  }
-
-  .row {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .first-rank {
-    height: 1em;
-    margin: 1em;
-    width: 100%;
-    border: 2px solid green;
-  }
-
-  .second-rank {
-    height: 1em;
-    margin: 1em;
-    width: 100%;
-    border: 2px solid aqua;
-  }
-
-  .third-rank {
-    height: 1em;
-    margin: 1em;
-    width: 100%;
-    border: 2px solid fuchsia;
-  }
-
 </style>
